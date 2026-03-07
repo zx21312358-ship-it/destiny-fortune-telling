@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>命运之境 - 在线算命占卜</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-effects">
+        <div class="stars"></div>
+        <div class="glow-orbs"></div>
+        <div class="particles"></div>
+    </div>
+
+    <header>
+        <h1 class="title">
+            <span class="mystic-symbol">✦</span>
+            命运之境
+            <span class="mystic-symbol">✦</span>
+        </h1>
+        <p class="subtitle">探索命运的奥秘，窥见未来的光芒</p>
+    </header>
+
+    <nav class="nav-tabs">
+        <button class="nav-btn active" data-tab="horoscope">
+            <span class="icon">✨</span>
+            星座运势
+        </button>
+        <button class="nav-btn" data-tab="bazi">
+            <span class="icon">☯</span>
+            八字算命
+        </button>
+        <button class="nav-btn" data-tab="tarot">
+            <span class="icon">🔮</span>
+            塔罗牌占卜
+        </button>
+    </nav>
+
+    <main>
+        <!-- 星座运势 -->
+        <section id="horoscope" class="tab-content active">
+            <div class="section-header">
+                <h2>星座运势</h2>
+                <p>选择你的星座，查看今日运势</p>
+            </div>
+
+            <div class="form-group">
+                <label>选择星座</label>
+                <select id="zodiac-sign">
+                    <option value="aries">♈ 白羊座 (3.21-4.19)</option>
+                    <option value="taurus">♉ 金牛座 (4.20-5.20)</option>
+                    <option value="gemini">♊ 双子座 (5.21-6.21)</option>
+                    <option value="cancer">♋ 巨蟹座 (6.22-7.22)</option>
+                    <option value="leo">♌ 狮子座 (7.23-8.22)</option>
+                    <option value="virgo">♍ 处女座 (8.23-9.22)</option>
+                    <option value="libra">♎ 天秤座 (9.23-10.23)</option>
+                    <option value="scorpio">♏ 天蝎座 (10.24-11.22)</option>
+                    <option value="sagittarius">♐ 射手座 (11.23-12.21)</option>
+                    <option value="capricorn">♑ 摩羯座 (12.22-1.19)</option>
+                    <option value="aquarius">♒ 水瓶座 (1.20-2.18)</option>
+                    <option value="pisces">♓ 双鱼座 (2.19-3.20)</option>
+                </select>
+                <button id="get-horoscope-btn" class="action-btn">
+                    <span>查看今日运势</span>
+                </button>
+            </div>
+
+            <div id="horoscope-result" class="result-container hidden">
+                <div class="result-card">
+                    <div class="result-header">
+                        <span id="result-zodiac" class="zodiac-name"></span>
+                        <span id="result-date" class="result-date"></span>
+                    </div>
+                    <div class="fortune-grid">
+                        <div class="fortune-item">
+                            <span class="fortune-icon">🌟</span>
+                            <span class="fortune-label">整体运势</span>
+                            <div class="fortune-bar">
+                                <div class="fortune-fill" id="overall-bar"></div>
+                            </div>
+                            <span class="fortune-value" id="overall-value"></span>
+                        </div>
+                        <div class="fortune-item">
+                            <span class="fortune-icon">💕</span>
+                            <span class="fortune-label">爱情运势</span>
+                            <div class="fortune-bar">
+                                <div class="fortune-fill" id="love-bar"></div>
+                            </div>
+                            <span class="fortune-value" id="love-value"></span>
+                        </div>
+                        <div class="fortune-item">
+                            <span class="fortune-icon">💰</span>
+                            <span class="fortune-label">财运</span>
+                            <div class="fortune-bar">
+                                <div class="fortune-fill" id="money-bar"></div>
+                            </div>
+                            <span class="fortune-value" id="money-value"></span>
+                        </div>
+                        <div class="fortune-item">
+                            <span class="fortune-icon">💼</span>
+                            <span class="fortune-label">事业</span>
+                            <div class="fortune-bar">
+                                <div class="fortune-fill" id="career-bar"></div>
+                            </div>
+                            <span class="fortune-value" id="career-value"></span>
+                        </div>
+                        <div class="fortune-item">
+                            <span class="fortune-icon">🏥</span>
+                            <span class="fortune-label">健康</span>
+                            <div class="fortune-bar">
+                                <div class="fortune-fill" id="health-bar"></div>
+                            </div>
+                            <span class="fortune-value" id="health-value"></span>
+                        </div>
+                    </div>
+                    <div class="fortune-text">
+                        <h4>📜 今日指引</h4>
+                        <p id="fortune-guidance"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 八字算命 -->
+        <section id="bazi" class="tab-content">
+            <div class="section-header">
+                <h2>八字算命</h2>
+                <p>输入出生信息，解析命理财运</p>
+            </div>
+
+            <div class="form-group">
+                <div class="input-row">
+                    <div class="input-item">
+                        <label>姓名</label>
+                        <input type="text" id="name" placeholder="请输入姓名">
+                    </div>
+                    <div class="input-item">
+                        <label>性别</label>
+                        <select id="gender">
+                            <option value="male">男</option>
+                            <option value="female">女</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-item">
+                        <label>出生年份</label>
+                        <select id="birth-year"></select>
+                    </div>
+                    <div class="input-item">
+                        <label>出生月份</label>
+                        <select id="birth-month">
+                            <option value="1">1 月</option>
+                            <option value="2">2 月</option>
+                            <option value="3">3 月</option>
+                            <option value="4">4 月</option>
+                            <option value="5">5 月</option>
+                            <option value="6">6 月</option>
+                            <option value="7">7 月</option>
+                            <option value="8">8 月</option>
+                            <option value="9">9 月</option>
+                            <option value="10">10 月</option>
+                            <option value="11">11 月</option>
+                            <option value="12">12 月</option>
+                        </select>
+                    </div>
+                    <div class="input-item">
+                        <label>出生日期</label>
+                        <select id="birth-day"></select>
+                    </div>
+                    <div class="input-item">
+                        <label>出生时辰</label>
+                        <select id="birth-hour">
+                            <option value="0">子时 (23:00-01:00)</option>
+                            <option value="1">丑时 (01:00-03:00)</option>
+                            <option value="2">寅时 (03:00-05:00)</option>
+                            <option value="3">卯时 (05:00-07:00)</option>
+                            <option value="4">辰时 (07:00-09:00)</option>
+                            <option value="5">巳时 (09:00-11:00)</option>
+                            <option value="6">午时 (11:00-13:00)</option>
+                            <option value="7">未时 (13:00-15:00)</option>
+                            <option value="8">申时 (15:00-17:00)</option>
+                            <option value="9">酉时 (17:00-19:00)</option>
+                            <option value="10">戌时 (19:00-21:00)</option>
+                            <option value="11">亥时 (21:00-23:00)</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="get-bazi-btn" class="action-btn">
+                    <span>排八字命盘</span>
+                </button>
+            </div>
+
+            <div id="bazi-result" class="result-container hidden">
+                <div class="result-card bazi-card">
+                    <div class="bazi-header">
+                        <h3 id="bazi-name"></h3>
+                        <p id="bazi-info"></p>
+                    </div>
+                    <div class="bazi-grid">
+                        <div class="bazi-pillar">
+                            <span class="pillar-label">年柱</span>
+                            <span class="pillar-gan" id="year-gan"></span>
+                            <span class="pillar-zhi" id="year-zhi"></span>
+                        </div>
+                        <div class="bazi-pillar">
+                            <span class="pillar-label">月柱</span>
+                            <span class="pillar-gan" id="month-gan"></span>
+                            <span class="pillar-zhi" id="month-zhi"></span>
+                        </div>
+                        <div class="bazi-pillar">
+                            <span class="pillar-label">日柱</span>
+                            <span class="pillar-gan" id="day-gan"></span>
+                            <span class="pillar-zhi" id="day-zhi"></span>
+                        </div>
+                        <div class="bazi-pillar">
+                            <span class="pillar-label">时柱</span>
+                            <span class="pillar-gan" id="hour-gan"></span>
+                            <span class="pillar-zhi" id="hour-zhi"></span>
+                        </div>
+                    </div>
+                    <div class="bazi-analysis">
+                        <h4>📜 命理分析</h4>
+                        <div class="analysis-content">
+                            <p><strong>日元：</strong><span id="riyuan"></span></p>
+                            <p><strong>五行：</strong><span id="wuxing"></span></p>
+                            <p><strong>生肖：</strong><span id="shengxiao"></span></p>
+                        </div>
+                    </div>
+                    <div class="fortune-text">
+                        <h4>💫 性格特征</h4>
+                        <p id="bazi-personality"></p>
+                    </div>
+                    <div class="fortune-text">
+                        <h4>💰 财运分析</h4>
+                        <p id="bazi-wealth"></p>
+                    </div>
+                    <div class="fortune-text">
+                        <h4>💕 感情运势</h4>
+                        <p id="bazi-love"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 塔罗牌占卜 -->
+        <section id="tarot" class="tab-content">
+            <div class="section-header">
+                <h2>塔罗牌占卜</h2>
+                <p>静心默念问题，抽取属于你的塔罗牌</p>
+            </div>
+
+            <div class="form-group">
+                <label>在心中默念你的问题</label>
+                <input type="text" id="tarot-question" placeholder="例如：我近期的感情运势如何？">
+                <div class="tarot-mode">
+                    <label>选择牌阵</label>
+                    <select id="tarot-spread">
+                        <option value="single">单张牌占卜 - 简单指引</option>
+                        <option value="three">三张牌阵 - 过去/现在/未来</option>
+                        <option value="celtic">凯尔特十字 - 全面解析</option>
+                    </select>
+                </div>
+                <button id="draw-tarot-btn" class="action-btn">
+                    <span>🔮 开始抽牌</span>
+                </button>
+            </div>
+
+            <div id="tarot-result" class="result-container hidden">
+                <div class="tarot-header">
+                    <h3 id="tarot-question-display"></h3>
+                    <p id="tarot-spread-info"></p>
+                </div>
+                <div id="tarot-cards" class="tarot-cards"></div>
+                <div id="tarot-interpretation" class="tarot-interpretation"></div>
+            </div>
+
+            <div id="tarot-shuffling" class="shuffling hidden">
+                <div class="shuffle-animation">
+                    <div class="card-shuffle"></div>
+                    <div class="card-shuffle"></div>
+                    <div class="card-shuffle"></div>
+                </div>
+                <p>正在洗牌...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>✨ 本结果仅供娱乐参考，命运掌握在自己手中 ✨</p>
+        <p class="copyright">© 2026 命运之境</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
