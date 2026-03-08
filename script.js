@@ -265,7 +265,35 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         option.textContent = i + '日';
         daySelect.appendChild(option);
     }
+    
+    // 初始化农历显示
+    updateLunarDate();
 })();
+
+// ==================== 农历日期实时更新 ====================
+function updateLunarDate() {
+    const year = parseInt(document.getElementById('birth-year')?.value);
+    const month = parseInt(document.getElementById('birth-month')?.value);
+    const day = parseInt(document.getElementById('birth-day')?.value);
+    const container = document.getElementById('lunar-display-container');
+    const lunarText = document.getElementById('lunar-date-text');
+    
+    if (!year || !month || !day || !container || !lunarText) {
+        if (container) container.style.display = 'none';
+        return;
+    }
+    
+    // 使用 LunarSimple 获取农历日期
+    const lunarData = LunarSimple.getLunarDateSync(year, month, day);
+    
+    lunarText.textContent = lunarData.full + ' (' + lunarData.monthName + '月' + lunarData.dayName + ')';
+    container.style.display = 'flex';
+}
+
+// 绑定日期选择器变化事件
+document.getElementById('birth-year')?.addEventListener('change', updateLunarDate);
+document.getElementById('birth-month')?.addEventListener('change', updateLunarDate);
+document.getElementById('birth-day')?.addEventListener('change', updateLunarDate);
 
 // ==================== 工具函数 ====================
 function generateId() {
@@ -419,7 +447,7 @@ const loveTexts = [
     "你的感情浪漫梦幻，期待童话般的爱情。需要区分理想和现实。"
 ];
 
-function getBazi() {
+async function getBazi() {
     const name = document.getElementById('name').value || '缘主';
     const gender = document.getElementById('gender').value;
     const year = parseInt(document.getElementById('birth-year').value);
@@ -427,13 +455,41 @@ function getBazi() {
     const day = parseInt(document.getElementById('birth-day').value);
     const hour = parseInt(document.getElementById('birth-hour').value);
 
-    // 使用 Lunar 库计算
-    const yearGanZhi = Lunar.getYearGanZhi(year);
-    const monthGanZhi = Lunar.getMonthGanZhi(year, month);
-    const dayGanZhi = Lunar.getDayGanZhi(year, month, day);
-    const hourGanZhi = Lunar.getHourGanZhi(dayGanZhi.gan, hour);
-    const lunarDate = Lunar.getLunarDate(year, month, day);
-    const shichen = Lunar.getShichenName(hour);
+    // 使用外部 lunar-javascript 库（如果可用）
+    let yearGanZhi, monthGanZhi, dayGanZhi, hourGanZhi, lunarDate, shichen;
+    
+    if (window.Solar && window.Lunar) {
+        // 使用外部库
+        const solar = Solar.fromYmd(year, month, day);
+        const lunar = solar.getLunar();
+        
+        yearGanZhi = {
+            gan: lunar.getYearGan(),
+            zhi: lunar.getYearZhi(),
+            shengxiao: lunar.getYearShengXiao()
+        };
+        monthGanZhi = {
+            gan: lunar.getMonthGan(),
+            zhi: lunar.getMonthZhi()
+        };
+        dayGanZhi = {
+            gan: lunar.getDayGan(),
+            zhi: lunar.getDayZhi()
+        };
+        hourGanZhi = LunarSimple.getHourGanZhi(dayGanZhi.gan, hour);
+        lunarDate = {
+            full: lunar.getYearInGanZhi() + '年 ' + lunar.getMonthInChinese() + '月' + lunar.getDayInChinese()
+        };
+        shichen = LunarSimple.getShichenName(hour);
+    } else {
+        // 使用 LunarSimple 备用方案
+        yearGanZhi = LunarSimple.getYearGanZhi(year);
+        monthGanZhi = LunarSimple.getMonthGanZhi(year, month);
+        dayGanZhi = LunarSimple.getDayGanZhi(year, month, day);
+        hourGanZhi = LunarSimple.getHourGanZhi(dayGanZhi.gan, hour);
+        lunarDate = LunarSimple.getLunarDateSync(year, month, day);
+        shichen = LunarSimple.getShichenName(hour);
+    }
 
     const info = `${year}年${month}月${day}日 ${shichen.name} ${gender === 'male' ? '男' : '女'}`;
 
@@ -451,7 +507,7 @@ function getBazi() {
     document.getElementById('hour-zhi').textContent = hourGanZhi.zhi;
 
     // 日元
-    const riyuan = dayGanZhi.gan + ' (' + Lunar.getWuxing(dayGanZhi.gan) + ')';
+    const riyuan = dayGanZhi.gan + ' (' + LunarSimple.getWuxing(dayGanZhi.gan) + ')';
     document.getElementById('riyuan').textContent = riyuan;
 
     // 五行统计
@@ -464,8 +520,8 @@ function getBazi() {
 
     const wuxingCount = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
     allGanZhi.forEach(gz => {
-        if (Lunar.getWuxing(gz)) {
-            wuxingCount[Lunar.getWuxing(gz)]++;
+        if (LunarSimple.getWuxing(gz)) {
+            wuxingCount[LunarSimple.getWuxing(gz)]++;
         }
     });
 
@@ -707,6 +763,377 @@ document.getElementById('clear-history').addEventListener('click', () => {
     if (confirm('确定要清空所有历史记录吗？')) {
         HistoryManager.clear();
     }
+});
+
+// ==================== AI 解读模块 ====================
+const AIInterpreter = {
+    // 生成星座运势 AI 解读
+    generateHoroscopeInterpretation: function(data) {
+        const signInfo = horoscopeData[data.sign] || { name: data.signName, element: '未知', quality: '未知' };
+        
+        return `
+            <h4>🌟 ${data.signName} 深度解析</h4>
+            
+            <div class="ai-result-section">
+                <p><strong>星座特质：</strong>${signInfo.name}属于<span class="highlight">${signInfo.element}象星座</span>，具有"${signInfo.quality}"的特质。今天你的整体能量指数为<span class="highlight">${data.overall}%</span>。</p>
+            </div>
+            
+            <h4>运势分析</h4>
+            <div class="ai-result-section">
+                <p><strong>整体运势：</strong>${this.getFortuneLevel(data.overall)} ${this.getHoroscopeAdvice('overall', data.overall)}</p>
+                <p><strong>爱情运势：</strong>${this.getFortuneLevel(data.love)} ${this.getHoroscopeAdvice('love', data.love)}</p>
+                <p><strong>财运：</strong>${this.getFortuneLevel(data.money)} ${this.getHoroscopeAdvice('money', data.money)}</p>
+                <p><strong>事业：</strong>${this.getFortuneLevel(data.career)} ${this.getHoroscopeAdvice('career', data.career)}</p>
+                <p><strong>健康：</strong>${this.getFortuneLevel(data.health)} ${this.getHoroscopeAdvice('health', data.health)}</p>
+            </div>
+            
+            <h4>💡 开运建议</h4>
+            <div class="ai-result-section">
+                <ul>
+                    <li>幸运颜色：${this.getLuckyColor(signInfo.element)}</li>
+                    <li>幸运数字：${this.getLuckyNumber(data.sign)}</li>
+                    <li>宜：${this.getDailyAdvice('good', signInfo.element)}</li>
+                    <li>忌：${this.getDailyAdvice('bad', signInfo.element)}</li>
+                </ul>
+            </div>
+            
+            <div class="ai-result-section" style="border-left-color: var(--accent-gold);">
+                <p><strong>✨ 心灵寄语：</strong>${data.guidance}</p>
+                <p style="margin-top: 10px; font-style: italic;">记住，星座运势只是参考，真正的命运掌握在你自己手中。保持积极的心态，用行动创造美好的未来。</p>
+            </div>
+        `;
+    },
+
+    getFortuneLevel: function(value) {
+        if (value >= 80) return '🌟 非常旺盛';
+        if (value >= 60) return '⭐ 平稳向上';
+        return '⚠️ 需要谨慎';
+    },
+
+    getHoroscopeAdvice: function(type, value) {
+        const advices = {
+            overall: {
+                high: '能量充沛，适合开展新计划。',
+                mid: '保持稳定，按部就班前进。',
+                low: '宜静不宜动，积蓄能量。'
+            },
+            love: {
+                high: '感情甜蜜，单身者有机会邂逅。',
+                mid: '感情平稳，多沟通增进理解。',
+                low: '注意情绪管理，避免争吵。'
+            },
+            money: {
+                high: '财运亨通，可适当投资。',
+                mid: '收支平衡，不宜大额消费。',
+                low: '谨慎理财，避免冲动消费。'
+            },
+            career: {
+                high: '事业顺利，易获认可。',
+                mid: '稳扎稳打，积累实力。',
+                low: '低调行事，避免冲突。'
+            },
+            health: {
+                high: '精力充沛，适合运动。',
+                mid: '状态良好，注意休息。',
+                low: '关注身体信号，及时休息。'
+            }
+        };
+        const level = value >= 80 ? 'high' : value >= 60 ? 'mid' : 'low';
+        return advices[type]?.[level] || '';
+    },
+
+    getLuckyColor: function(element) {
+        const colors = {
+            '火': '红色、橙色',
+            '土': '黄色、棕色',
+            '风': '蓝色、绿色',
+            '水': '黑色、深蓝色'
+        };
+        return colors[element] || '白色';
+    },
+
+    getLuckyNumber: function(sign) {
+        const numbers = {
+            'aries': '1, 9', 'taurus': '2, 6', 'gemini': '3, 5',
+            'cancer': '2, 8', 'leo': '1, 4', 'virgo': '5, 6',
+            'libra': '6, 9', 'scorpio': '8, 9', 'sagittarius': '3, 9',
+            'capricorn': '4, 8', 'aquarius': '1, 7', 'pisces': '3, 9'
+        };
+        return numbers[sign] || '7';
+    },
+
+    getDailyAdvice: function(type, element) {
+        const good = {
+            '火': '开拓新领域、运动健身、表达自我',
+            '土': '稳健投资、整理收纳、享受美食',
+            '风': '社交聚会、学习新知、短途旅行',
+            '水': '冥想反思、艺术创作、陪伴家人'
+        };
+        const bad = {
+            '火': '冲动决策、与人争执、过度消费',
+            '土': '固执己见、拒绝改变、暴饮暴食',
+            '风': '三心二意、传播谣言、熬夜失眠',
+            '水': '情绪化、过度敏感、逃避现实'
+        };
+        return type === 'good' ? good[element] : bad[element];
+    },
+
+    // 生成八字命理 AI 解读
+    generateBaziInterpretation: function(data) {
+        const wuxingAnalysis = this.analyzeWuxing(data.wuxing);
+        const riyuanAnalysis = this.analyzeRiyuan(data.riyuan);
+        
+        return `
+            <h4>📜 ${data.name} 命盘深度解析</h4>
+            
+            <div class="ai-result-section">
+                <p><strong>出生信息：</strong>${data.info}</p>
+                <p><strong>农历：</strong>${data.lunar}</p>
+                <p><strong>生肖：</strong><span class="highlight">${data.shengxiao}</span></p>
+            </div>
+            
+            <h4>八字排盘</h4>
+            <div class="ai-result-section">
+                <p><strong>年柱：</strong>${data.yearGan}${data.yearZhi}（祖上、父母宫）</p>
+                <p><strong>月柱：</strong>${data.monthGan}${data.monthZhi}（兄弟、事业宫）</p>
+                <p><strong>日柱：</strong>${data.dayGan}${data.dayZhi}（自身、配偶宫）</p>
+                <p><strong>时柱：</strong>${data.hourGan}${data.hourZhi}（子女、晚年宫）</p>
+            </div>
+            
+            <h4>五行分析</h4>
+            <div class="ai-result-section">
+                <p>${wuxingAnalysis}</p>
+            </div>
+            
+            <h4>日元解析</h4>
+            <div class="ai-result-section">
+                <p>${riyuanAnalysis}</p>
+            </div>
+            
+            <h4>综合运势</h4>
+            <div class="ai-result-section">
+                <p><strong>性格特征：</strong>${data.personality}</p>
+                <p><strong>财运分析：</strong>${data.wealth}</p>
+                <p><strong>感情运势：</strong>${data.love}</p>
+            </div>
+            
+            <div class="ai-result-section" style="border-left-color: var(--accent-gold);">
+                <p><strong>✨ 开运建议：</strong></p>
+                <ul>
+                    <li>幸运方位：${this.getLuckyDirection(data.shengxiao)}</li>
+                    <li>幸运颜色：${this.getLuckyColorByWuxing(wuxingAnalysis)}</li>
+                    <li>适合行业：${this.getSuitableCareer(data.riyuan)}</li>
+                </ul>
+                <p style="margin-top: 10px; font-style: italic;">命理分析仅供参考，人生道路需要自己去走。知命而不认命，才是改运的真谛。</p>
+            </div>
+        `;
+    },
+
+    analyzeWuxing: function(wuxingStr) {
+        const counts = {};
+        wuxingStr.split('  ').forEach(item => {
+            const [wx, count] = item.split(':');
+            counts[wx] = parseInt(count);
+        });
+        
+        const max = Math.max(...Object.values(counts));
+        const min = Math.min(...Object.values(counts));
+        const missing = Object.entries(counts).filter(([_, c]) => c === 0).map(([w]) => w);
+        
+        let analysis = `五行分布：${wuxingStr}。`;
+        
+        if (missing.length > 0) {
+            analysis += `命中缺${missing.join('、')}，建议在生活中多补充相关元素。`;
+        }
+        
+        if (max >= 3) {
+            const dominant = Object.entries(counts).find(([_, c]) => c === max)[0];
+            analysis += `${dominant}较旺，性格上会表现出${this.getWuxingTrait(dominant)}的特质。`;
+        }
+        
+        return analysis;
+    },
+
+    analyzeRiyuan: function(riyuan) {
+        const gan = riyuan.split(' ')[0];
+        const descriptions = {
+            '甲': '甲木日元，如参天大树，正直有骨气，有领导才能。',
+            '乙': '乙木日元，如花草藤蔓，柔韧适应，善于变通。',
+            '丙': '丙火日元，如太阳般热情，开朗外向，乐于助人。',
+            '丁': '丁火日元，如烛光灯火，温和细腻，富有同情心。',
+            '戊': '戊土日元，如大地般厚重，诚实可靠，包容力强。',
+            '己': '己土日元，如田园之土，温和谦逊，善于培育。',
+            '庚': '庚金日元，如刀剑之金，刚毅果断，有决断力。',
+            '辛': '辛金日元，如珠宝之金，精致优雅，追求完美。',
+            '壬': '壬水日元，如江河湖海，聪明智慧，适应力强。',
+            '癸': '癸水日元，如雨露之水，温柔内敛，富有想象力。'
+        };
+        return descriptions[gan] || '日元分析暂缺。';
+    },
+
+    getWuxingTrait: function(wuxing) {
+        const traits = {
+            '金': '刚毅、果断、重义气',
+            '木': '仁慈、正直、有上进心',
+            '水': '智慧、灵活、善于变通',
+            '火': '热情、开朗、有领导力',
+            '土': '诚信、稳重、包容力强'
+        };
+        return traits[wuxing] || '';
+    },
+
+    getLuckyDirection: function(shengxiao) {
+        const directions = {
+            '鼠': '北方', '牛': '东北方', '虎': '东方',
+            '兔': '东方', '龙': '东南方', '蛇': '南方',
+            '马': '南方', '羊': '西南方', '猴': '西方',
+            '鸡': '西方', '狗': '西北方', '猪': '北方'
+        };
+        return directions[shengxiao] || '中央';
+    },
+
+    getLuckyColorByWuxing: function(analysis) {
+        if (analysis.includes('缺金')) return '白色、金色';
+        if (analysis.includes('缺木')) return '绿色、青色';
+        if (analysis.includes('缺水')) return '黑色、蓝色';
+        if (analysis.includes('缺火')) return '红色、紫色';
+        if (analysis.includes('缺土')) return '黄色、棕色';
+        return '根据个人喜好选择';
+    },
+
+    getSuitableCareer: function(riyuan) {
+        const gan = riyuan.split(' ')[0];
+        const careers = {
+            '甲': '管理、军警、体育',
+            '乙': '艺术、设计、教育',
+            '丙': '演艺、销售、餐饮',
+            '丁': '文化、咨询、服务业',
+            '戊': '房地产、建筑、农业',
+            '己': '教育、医疗、服务业',
+            '庚': '金融、法律、机械',
+            '辛': '珠宝、美容、精密行业',
+            '壬': '贸易、旅游、物流',
+            '癸': '研究、艺术、咨询'
+        };
+        return careers[gan] || '多元化发展';
+    },
+
+    // 生成塔罗牌 AI 解读
+    generateTarotInterpretation: function(data) {
+        const uprightCount = data.cards.filter(c => !c.reversed).length;
+        const reversedCount = data.cards.length - uprightCount;
+        
+        return `
+            <h4>🔮 ${data.question} 深度解析</h4>
+            
+            <div class="ai-result-section">
+                <p><strong>问题：</strong>${data.question}</p>
+                <p><strong>牌阵：</strong>${data.spreadInfo}</p>
+                <p><strong>正位牌：${uprightCount} 张 | 逆位牌：${reversedCount} 张</strong></p>
+            </div>
+            
+            <h4>牌面详解</h4>
+            ${data.cards.map((card, index) => `
+                <div class="ai-result-section">
+                    <p><strong>${tarotPositions[data.spread]?.[index] || '位置'}：${card.name} ${card.reversed ? '(逆位)' : '(正位)'}</strong></p>
+                    <p>${card.reversed ? card.reversed : card.upright}</p>
+                    <p style="margin-top: 8px; color: var(--accent-primary);">${this.getTarotAdvice(card, card.reversed)}</p>
+                </div>
+            `).join('')}
+            
+            <h4>综合指引</h4>
+            <div class="ai-result-section" style="border-left-color: var(--accent-gold);">
+                <p>${this.getTarotSummary(uprightCount, data.cards.length)}</p>
+                <p style="margin-top: 10px; font-style: italic;">塔罗牌是潜意识的映射，真正的力量在你内心。相信自己的直觉，做出最适合你的选择。</p>
+            </div>
+        `;
+    },
+
+    getTarotAdvice: function(card, isReversed) {
+        const advices = {
+            '愚者': isReversed ? '建议三思而后行，不要过于冲动。' : '勇敢迈出第一步，但也要做好准备工作。',
+            '魔术师': isReversed ? '需要提升技能，不要急于求成。' : '善用你的才能和资源，现在是行动的好时机。',
+            '女祭司': isReversed ? '不要忽视直觉，但也要理性分析。' : '倾听内心的声音，答案就在你心中。',
+            '皇后': isReversed ? '避免过度依赖他人，培养独立性。' : '发挥创造力，享受生活的美好。',
+            '皇帝': isReversed ? '学会灵活变通，不要过于专制。' : '建立秩序和结构，发挥领导力。',
+            '教皇': isReversed ? '可以挑战传统，寻找自己的道路。' : '寻求指导，学习传统智慧。',
+            '恋人': isReversed ? '慎重做出选择，避免错误决定。' : '相信你的心，做出真诚的选择。',
+            '战车': isReversed ? '重新调整方向，不要强行推进。' : '保持自律，朝着目标坚定前进。',
+            '力量': isReversed ? '重建信心，你比想象中更强大。' : '用耐心和温柔应对挑战。',
+            '隐士': isReversed ? '不要完全孤立自己，接受他人帮助。' : '给自己独处的时间，寻找内在答案。',
+            '命运之轮': isReversed ? '耐心等待时机，不要抗拒变化。' : '顺应命运的流转，把握机会。',
+            '正义': isReversed ? '保持客观，避免偏见影响判断。' : '做出公正的决定，为自己的行为负责。',
+            '倒吊人': isReversed ? '避免无谓的牺牲，重新评估付出。' : '换个角度看问题，等待最佳时机。',
+            '死神': isReversed ? '放下过去，拥抱新的开始。' : '接受结束，迎接新的转变。',
+            '节制': isReversed ? '寻找平衡，避免极端行为。' : '保持耐心和适度，找到中庸之道。',
+            '恶魔': isReversed ? '认识到束缚，开始寻求解脱。' : '警惕欲望和执念的束缚。',
+            '高塔': isReversed ? ' gradual 改变好过剧烈冲击。' : '接受必要的破坏，为重建做准备。',
+            '星星': isReversed ? '重拾希望，相信未来会更好。' : '保持信心，跟随你的梦想。',
+            '月亮': isReversed ? '真相即将浮现，不要害怕面对。' : '相信直觉，穿越迷雾找到方向。',
+            '太阳': isReversed ? '暂时的阴霾会过去，保持耐心。' : '享受成功和快乐，散发正能量。',
+            '审判': isReversed ? '原谅自己和他人，放下过去。' : '回应内心的召唤，迎接新阶段。',
+            '世界': isReversed ? '完成未完成的事，准备新的开始。' : '庆祝成就，准备新的旅程。'
+        };
+        return advices[card.name] || '相信你的直觉，做出最适合的选择。';
+    },
+
+    getTarotSummary: function(upright, total) {
+        const ratio = upright / total;
+        if (ratio >= 0.7) {
+            return '整体来看，牌面非常积极。宇宙在支持你，保持信心和开放的心态，勇敢追求你的目标。正位牌居多，表示能量流动顺畅，是采取行动的好时机。';
+        } else if (ratio <= 0.3) {
+            return '牌面显示目前可能面临一些挑战和阻碍。逆位牌居多，提示你需要内省和调整。不要急于行动，先理清思路，等时机成熟再前进。';
+        } else {
+            return '牌面显示机遇与挑战并存。正逆位牌相当，表示你需要在变化中寻找平衡。保持灵活和开放的心态，根据情况调整策略。';
+        }
+    },
+
+    // 显示 AI 解读
+    showInterpretation: function(type, data) {
+        const panel = document.getElementById('ai-panel');
+        const loading = panel.querySelector('.ai-loading');
+        const result = document.getElementById('ai-result');
+        
+        // 显示面板和加载动画
+        panel.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        result.innerHTML = '';
+        
+        // 模拟 AI 思考时间
+        setTimeout(() => {
+            loading.classList.add('hidden');
+            
+            let interpretation = '';
+            if (type === 'horoscope') {
+                interpretation = this.generateHoroscopeInterpretation(data);
+            } else if (type === 'bazi') {
+                interpretation = this.generateBaziInterpretation(data);
+            } else if (type === 'tarot') {
+                interpretation = this.generateTarotInterpretation(data);
+            }
+            
+            result.innerHTML = interpretation;
+        }, 1500);
+    }
+};
+
+// AI 解读按钮事件绑定
+document.querySelectorAll('.ai-interpret-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const type = this.dataset.type;
+        
+        if (!currentResult || currentType !== type) {
+            alert('请先生成占卜结果');
+            return;
+        }
+        
+        AIInterpreter.showInterpretation(type, currentResult);
+    });
+});
+
+// 关闭 AI 面板
+document.getElementById('close-ai')?.addEventListener('click', () => {
+    document.getElementById('ai-panel').classList.add('hidden');
 });
 
 // ==================== 初始化 ====================

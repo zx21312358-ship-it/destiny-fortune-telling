@@ -128,6 +128,10 @@
                         <h4>📜 今日指引</h4>
                         <p id="fortune-guidance"></p>
                     </div>
+                    <button class="ai-interpret-btn" data-type="horoscope">
+                        <span class="ai-icon">✨</span> AI 深度解读
+                    </button>
+                    <div id="horoscope-ai-result" class="ai-result-container hidden"></div>
                     <button class="save-history-btn" data-type="horoscope">保存到历史记录</button>
                 </div>
             </div>
@@ -198,6 +202,10 @@
                         </select>
                     </div>
                 </div>
+                <div class="lunar-display" id="lunar-display-container" style="display: none;">
+                    <span class="lunar-label">📅 农历：</span>
+                    <span id="lunar-date-text" class="lunar-date"></span>
+                </div>
                 <button id="get-bazi-btn" class="action-btn">
                     <span>排八字命盘</span>
                 </button>
@@ -252,6 +260,10 @@
                         <h4>💕 感情运势</h4>
                         <p id="bazi-love"></p>
                     </div>
+                    <button class="ai-interpret-btn" data-type="bazi">
+                        <span class="ai-icon">✨</span> AI 深度解读
+                    </button>
+                    <div id="bazi-ai-result" class="ai-result-container hidden"></div>
                     <button class="save-history-btn" data-type="bazi">保存到历史记录</button>
                 </div>
             </div>
@@ -287,6 +299,10 @@
                 </div>
                 <div id="tarot-cards" class="tarot-cards"></div>
                 <div id="tarot-interpretation" class="tarot-interpretation"></div>
+                <button class="ai-interpret-btn" data-type="tarot">
+                    <span class="ai-icon">✨</span> AI 深度解读
+                </button>
+                <div id="tarot-ai-result" class="ai-result-container hidden"></div>
                 <button class="save-history-btn" data-type="tarot">保存到历史记录</button>
             </div>
 
@@ -311,6 +327,21 @@
             <p class="empty-history">暂无历史记录</p>
         </div>
         <button id="clear-history" class="clear-history-btn">清空历史记录</button>
+    </div>
+
+    <!-- AI 解读面板 -->
+    <div id="ai-panel" class="ai-panel hidden">
+        <div class="ai-header">
+            <h3>🔮 AI 命理解读</h3>
+            <button id="close-ai" class="close-btn">×</button>
+        </div>
+        <div id="ai-content" class="ai-content">
+            <div class="ai-loading hidden">
+                <div class="ai-spinner"></div>
+                <p>AI 正在分析您的命盘...</p>
+            </div>
+            <div id="ai-result" class="ai-result"></div>
+        </div>
     </div>
 
     <!-- 主题选择面板 -->
@@ -344,6 +375,8 @@
         <p class="copyright">© 2026 命运之境</p>
     </footer>
 
+    <!-- 引入 lunar-lib 农历库 -->
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript@1.6.12/lunar.js"></script>
     <script src="lunar.js"></script>
     <script src="script.js"></script>
 </body>

@@ -1,0 +1,22 @@
+{
+  "name": "destiny-cos-deploy",
+  "version": "1.0.0",
+  "description": "命运之境 - 腾讯云 COS 静态网站部署脚本",
+  "main": "deploy-cos.js",
+  "scripts": {
+    "deploy": "node deploy-cos.js",
+    "deploy:sh": "bash deploy-cos.sh",
+    "deploy:ps1": "powershell -ExecutionPolicy Bypass -File deploy-cos.ps1"
+  },
+  "keywords": [
+    "tencent",
+    "cos",
+    "deploy",
+    "static-website"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cos-nodejs-sdk-v5": "^2.14.6"
+  }
+}
