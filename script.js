@@ -1,4 +1,240 @@
-// 命运之境 - 算命网页核心功能
+// 命运之境 - 算命网页核心功能（升级版）
+
+// ==================== 全局状态 ====================
+let currentResult = null; // 当前占卜结果
+let currentType = null;   // 当前占卜类型
+
+// ==================== 主题切换 ====================
+const ThemeManager = {
+    init: function() {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.body.setAttribute('data-theme', savedTheme);
+        this.updateActiveTheme(savedTheme);
+    },
+
+    setTheme: function(theme) {
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        this.updateActiveTheme(theme);
+    },
+
+    updateActiveTheme: function(theme) {
+        document.querySelectorAll('.theme-option').forEach(option => {
+            option.classList.toggle('active', option.dataset.theme === theme);
+        });
+    },
+
+    togglePanel: function() {
+        const panel = document.getElementById('theme-panel');
+        panel.classList.toggle('hidden');
+        document.getElementById('history-panel')?.classList.add('hidden');
+    }
+};
+
+// ==================== 历史记录管理 ====================
+const HistoryManager = {
+    STORAGE_KEY: 'destiny_history',
+    MAX_ITEMS: 50,
+
+    init: function() {
+        this.render();
+    },
+
+    save: function(type, title, data) {
+        const history = this.getAll();
+        const newItem = {
+            id: Date.now().toString(),
+            type: type,
+            title: title,
+            data: data,
+            timestamp: Date.now()
+        };
+
+        history.unshift(newItem);
+        if (history.length > this.MAX_ITEMS) {
+            history.pop();
+        }
+
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(history));
+        this.render();
+        return newItem;
+    },
+
+    getAll: function() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    delete: function(id) {
+        const history = this.getAll().filter(item => item.id !== id);
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(history));
+        this.render();
+    },
+
+    clear: function() {
+        localStorage.removeItem(this.STORAGE_KEY);
+        this.render();
+    },
+
+    formatTime: function(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diff = now - date;
+
+        if (diff < 60000) return '刚刚';
+        if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前';
+        if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前';
+        if (diff < 604800000) return Math.floor(diff / 86400000) + '天前';
+
+        return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+    },
+
+    getTypeName: function(type) {
+        const names = {
+            horoscope: '星座运势',
+            bazi: '八字算命',
+            tarot: '塔罗占卜'
+        };
+        return names[type] || type;
+    },
+
+    render: function() {
+        const history = this.getAll();
+        const container = document.getElementById('history-list');
+
+        if (history.length === 0) {
+            container.innerHTML = '<p class="empty-history">暂无历史记录</p>';
+            return;
+        }
+
+        container.innerHTML = history.map(item => `
+            <div class="history-item" data-id="${item.id}" data-type="${item.type}">
+                <div class="history-item-header">
+                    <span class="history-type">${this.getTypeName(item.type)}</span>
+                    <button class="history-delete" data-id="${item.id}">×</button>
+                </div>
+                <div class="history-title">${item.title}</div>
+                <div class="history-time">${this.formatTime(item.timestamp)}</div>
+            </div>
+        `).join('');
+
+        // 绑定事件
+        container.querySelectorAll('.history-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.classList.contains('history-delete')) {
+                    this.delete(e.target.dataset.id);
+                } else {
+                    this.loadHistory(item.dataset.id, item.dataset.type);
+                }
+            });
+        });
+    },
+
+    loadHistory: function(id, type) {
+        const history = this.getAll().find(item => item.id === id);
+        if (!history) return;
+
+        // 切换到对应标签页
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === type);
+        });
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === type);
+        });
+        document.getElementById('history-panel')?.classList.add('hidden');
+
+        // 加载结果
+        if (type === 'horoscope') {
+            this.loadHoroscopeResult(history.data);
+        } else if (type === 'bazi') {
+            this.loadBaziResult(history.data);
+        } else if (type === 'tarot') {
+            this.loadTarotResult(history.data);
+        }
+    },
+
+    loadHoroscopeResult: function(data) {
+        const getBarColor = (value) => {
+            if (value >= 80) return '#00ffff';
+            if (value >= 60) return '#ffd700';
+            return '#ff6b6b';
+        };
+
+        document.getElementById('result-zodiac').textContent = data.signName;
+        document.getElementById('result-date').textContent = data.date;
+
+        ['overall', 'love', 'money', 'career', 'health'].forEach(key => {
+            const value = data[key];
+            document.getElementById(key + '-bar').style.width = value + '%';
+            document.getElementById(key + '-bar').style.background = getBarColor(value);
+            document.getElementById(key + '-value').textContent = value + '%';
+        });
+
+        document.getElementById('fortune-guidance').textContent = data.guidance;
+        document.getElementById('horoscope-result').classList.remove('hidden');
+    },
+
+    loadBaziResult: function(data) {
+        document.getElementById('bazi-name').textContent = data.name + '的命盘';
+        document.getElementById('bazi-info').textContent = data.info;
+        document.getElementById('bazi-lunar').textContent = data.lunar;
+
+        document.getElementById('year-gan').textContent = data.yearGan;
+        document.getElementById('year-zhi').textContent = data.yearZhi;
+        document.getElementById('month-gan').textContent = data.monthGan;
+        document.getElementById('month-zhi').textContent = data.monthZhi;
+        document.getElementById('day-gan').textContent = data.dayGan;
+        document.getElementById('day-zhi').textContent = data.dayZhi;
+        document.getElementById('hour-gan').textContent = data.hourGan;
+        document.getElementById('hour-zhi').textContent = data.hourZhi;
+
+        document.getElementById('riyuan').textContent = data.riyuan;
+        document.getElementById('wuxing').textContent = data.wuxing;
+        document.getElementById('shengxiao').textContent = data.shengxiao;
+        document.getElementById('bazi-personality').textContent = data.personality;
+        document.getElementById('bazi-wealth').textContent = data.wealth;
+        document.getElementById('bazi-love').textContent = data.love;
+
+        document.getElementById('bazi-result').classList.remove('hidden');
+    },
+
+    loadTarotResult: function(data) {
+        document.getElementById('tarot-question-display').textContent = '问题：' + data.question;
+        document.getElementById('tarot-spread-info').textContent = data.spreadInfo;
+        document.getElementById('tarot-interpretation').innerHTML = data.interpretation;
+
+        const cardsContainer = document.getElementById('tarot-cards');
+        cardsContainer.innerHTML = '';
+
+        data.cards.forEach((card, index) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'tarot-card revealed';
+            cardEl.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-back"></div>
+                    <div class="card-front">
+                        <span class="card-name">${card.name}</span>
+                        <span class="card-meaning">${card.reversed ? '逆位' : '正位'}</span>
+                        <span style="font-size: 2rem; margin: 10px 0;">🔮</span>
+                    </div>
+                </div>
+            `;
+            cardsContainer.appendChild(cardEl);
+        });
+
+        document.getElementById('tarot-result').classList.remove('hidden');
+    },
+
+    togglePanel: function() {
+        const panel = document.getElementById('history-panel');
+        panel.classList.toggle('hidden');
+        document.getElementById('theme-panel')?.classList.add('hidden');
+    }
+};
 
 // ==================== 选项卡切换 ====================
 document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -30,6 +266,11 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         daySelect.appendChild(option);
     }
 })();
+
+// ==================== 工具函数 ====================
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
 
 // ==================== 星座运势 ====================
 const horoscopeData = {
@@ -64,28 +305,27 @@ function getHoroscope() {
     const sign = document.getElementById('zodiac-sign').value;
     const signData = horoscopeData[sign];
 
-    // 生成随机运势值
     const overall = Math.floor(Math.random() * 40) + 60;
     const love = Math.floor(Math.random() * 40) + 60;
     const money = Math.floor(Math.random() * 40) + 60;
     const career = Math.floor(Math.random() * 40) + 60;
     const health = Math.floor(Math.random() * 40) + 60;
 
-    // 设置颜色
     const getBarColor = (value) => {
-        if (value >= 80) return 'linear-gradient(90deg, #00ffff, #00ff88)';
-        if (value >= 60) return 'linear-gradient(90deg, #ffd700, #ffaa00)';
-        return 'linear-gradient(90deg, #ff6b6b, #ff4757)';
+        if (value >= 80) return '#00ffff';
+        if (value >= 60) return '#ffd700';
+        return '#ff6b6b';
     };
 
-    // 更新 UI
-    document.getElementById('result-zodiac').textContent = signData.name;
-    document.getElementById('result-date').textContent = new Date().toLocaleDateString('zh-CN', {
+    const dateStr = new Date().toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         weekday: 'long'
     });
+
+    document.getElementById('result-zodiac').textContent = signData.name;
+    document.getElementById('result-date').textContent = dateStr;
 
     document.getElementById('overall-bar').style.width = overall + '%';
     document.getElementById('overall-bar').style.background = getBarColor(overall);
@@ -107,12 +347,24 @@ function getHoroscope() {
     document.getElementById('health-bar').style.background = getBarColor(health);
     document.getElementById('health-value').textContent = health + '%';
 
-    // 随机选择指引
     const guidance = fortuneTexts[Math.floor(Math.random() * fortuneTexts.length)];
     document.getElementById('fortune-guidance').textContent = guidance;
 
-    // 显示结果
     document.getElementById('horoscope-result').classList.remove('hidden');
+
+    // 保存当前结果
+    currentType = 'horoscope';
+    currentResult = {
+        sign: sign,
+        signName: signData.name,
+        date: dateStr,
+        overall: overall,
+        love: love,
+        money: money,
+        career: career,
+        health: health,
+        guidance: guidance
+    };
 }
 
 document.getElementById('get-horoscope-btn').addEventListener('click', getHoroscope);
@@ -120,76 +372,7 @@ document.getElementById('get-horoscope-btn').addEventListener('click', getHorosc
 // ==================== 八字算命 ====================
 const tiangan = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 const dizhi = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-const wuxing = {
-    '甲': '木', '乙': '木',
-    '丙': '火', '丁': '火',
-    '戊': '土', '己': '土',
-    '庚': '金', '辛': '金',
-    '壬': '水', '癸': '水',
-    '子': '水', '丑': '土',
-    '寅': '木', '卯': '木',
-    '辰': '土', '巳': '火',
-    '午': '火', '未': '土',
-    '申': '金', '酉': '金',
-    '戌': '土', '亥': '水'
-};
 const shengxiaoArr = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
-
-// 年柱计算
-function getYearGanZhi(year) {
-    const ganIndex = (year - 4) % 10;
-    const zhiIndex = (year - 4) % 12;
-    return {
-        gan: tiangan[ganIndex < 0 ? ganIndex + 10 : ganIndex],
-        zhi: dizhi[zhiIndex < 0 ? zhiIndex + 12 : zhiIndex]
-    };
-}
-
-// 月柱计算（简化版）
-function getMonthGanZhi(year, month) {
-    const yearGanZhi = getYearGanZhi(year);
-    const yearGanIndex = tiangan.indexOf(yearGanZhi.gan);
-
-    // 月支固定
-    const monthZhiIndex = (month + 2) % 12;
-    const monthZhi = dizhi[monthZhiIndex];
-
-    // 月干根据年干推算
-    const monthGanIndex = ((yearGanIndex % 5) * 2 + month - 1) % 10;
-    const monthGan = tiangan[monthGanIndex < 0 ? monthGanIndex + 10 : monthGanIndex];
-
-    return { gan: monthGan, zhi: monthZhi };
-}
-
-// 日柱计算（简化版，实际应查万年历）
-function getDayGanZhi(year, month, day) {
-    const baseDate = new Date(1900, 0, 31); // 1900 年 1 月 31 日是甲子日
-    const targetDate = new Date(year, month - 1, day);
-    const diffDays = Math.floor((targetDate - baseDate) / (1000 * 60 * 60 * 24));
-
-    const ganIndex = diffDays % 10;
-    const zhiIndex = diffDays % 12;
-
-    return {
-        gan: tiangan[ganIndex < 0 ? ganIndex + 10 : ganIndex],
-        zhi: dizhi[zhiIndex < 0 ? zhiIndex + 12 : zhiIndex]
-    };
-}
-
-// 时柱计算
-function getHourGanZhi(dayGan, hour) {
-    const dayGanIndex = tiangan.indexOf(dayGan);
-
-    // 时支
-    const hourZhiIndex = Math.floor((hour + 1) / 2) % 12;
-    const hourZhi = dizhi[hourZhiIndex];
-
-    // 时干根据日干推算
-    const hourGanIndex = ((dayGanIndex % 5) * 2 + hourZhiIndex) % 10;
-    const hourGan = tiangan[hourGanIndex < 0 ? hourGanIndex + 10 : hourGanIndex];
-
-    return { gan: hourGan, zhi: hourZhi };
-}
 
 const personalityTexts = [
     "你性格坚毅，有强烈的进取心和领导力。做事果断，不喜欢拖泥带水。",
@@ -244,16 +427,19 @@ function getBazi() {
     const day = parseInt(document.getElementById('birth-day').value);
     const hour = parseInt(document.getElementById('birth-hour').value);
 
-    // 计算四柱
-    const yearGanZhi = getYearGanZhi(year);
-    const monthGanZhi = getMonthGanZhi(year, month);
-    const dayGanZhi = getDayGanZhi(year, month, day);
-    const hourGanZhi = getHourGanZhi(dayGanZhi.gan, hour);
+    // 使用 Lunar 库计算
+    const yearGanZhi = Lunar.getYearGanZhi(year);
+    const monthGanZhi = Lunar.getMonthGanZhi(year, month);
+    const dayGanZhi = Lunar.getDayGanZhi(year, month, day);
+    const hourGanZhi = Lunar.getHourGanZhi(dayGanZhi.gan, hour);
+    const lunarDate = Lunar.getLunarDate(year, month, day);
+    const shichen = Lunar.getShichenName(hour);
 
-    // 更新 UI
+    const info = `${year}年${month}月${day}日 ${shichen.name} ${gender === 'male' ? '男' : '女'}`;
+
     document.getElementById('bazi-name').textContent = name + '的命盘';
-    document.getElementById('bazi-info').textContent =
-        `${year}年${month}月${day}日 ${dizhi[hour]}时 ${gender === 'male' ? '男' : '女'}`;
+    document.getElementById('bazi-info').textContent = info;
+    document.getElementById('bazi-lunar').textContent = `农历：${lunarDate.full}`;
 
     document.getElementById('year-gan').textContent = yearGanZhi.gan;
     document.getElementById('year-zhi').textContent = yearGanZhi.zhi;
@@ -265,7 +451,8 @@ function getBazi() {
     document.getElementById('hour-zhi').textContent = hourGanZhi.zhi;
 
     // 日元
-    document.getElementById('riyuan').textContent = dayGanZhi.gan + ' (' + wuxing[dayGanZhi.gan] + ')';
+    const riyuan = dayGanZhi.gan + ' (' + Lunar.getWuxing(dayGanZhi.gan) + ')';
+    document.getElementById('riyuan').textContent = riyuan;
 
     // 五行统计
     const allGanZhi = [
@@ -277,8 +464,8 @@ function getBazi() {
 
     const wuxingCount = { '金': 0, '木': 0, '水': 0, '火': 0, '土': 0 };
     allGanZhi.forEach(gz => {
-        if (wuxing[gz]) {
-            wuxingCount[wuxing[gz]]++;
+        if (Lunar.getWuxing(gz)) {
+            wuxingCount[Lunar.getWuxing(gz)]++;
         }
     });
 
@@ -288,9 +475,7 @@ function getBazi() {
     document.getElementById('wuxing').textContent = wuxingStr;
 
     // 生肖
-    const yearZhiIndex = (year - 4) % 12;
-    const shengxiao = shengxiaoArr[yearZhiIndex < 0 ? yearZhiIndex + 12 : yearZhiIndex];
-    document.getElementById('shengxiao').textContent = shengxiao;
+    document.getElementById('shengxiao').textContent = yearGanZhi.shengxiao;
 
     // 性格、财运、感情
     const dayGanIndex = tiangan.indexOf(dayGanZhi.gan);
@@ -298,8 +483,29 @@ function getBazi() {
     document.getElementById('bazi-wealth').textContent = wealthTexts[dayGanIndex];
     document.getElementById('bazi-love').textContent = loveTexts[dayGanIndex];
 
-    // 显示结果
     document.getElementById('bazi-result').classList.remove('hidden');
+
+    // 保存当前结果
+    currentType = 'bazi';
+    currentResult = {
+        name: name,
+        info: info,
+        lunar: lunarDate.full,
+        yearGan: yearGanZhi.gan,
+        yearZhi: yearGanZhi.zhi,
+        monthGan: monthGanZhi.gan,
+        monthZhi: monthGanZhi.zhi,
+        dayGan: dayGanZhi.gan,
+        dayZhi: dayGanZhi.zhi,
+        hourGan: hourGanZhi.gan,
+        hourZhi: hourGanZhi.zhi,
+        riyuan: riyuan,
+        wuxing: wuxingStr,
+        shengxiao: yearGanZhi.shengxiao,
+        personality: personalityTexts[dayGanIndex],
+        wealth: wealthTexts[dayGanIndex],
+        love: loveTexts[dayGanIndex]
+    };
 }
 
 document.getElementById('get-bazi-btn').addEventListener('click', getBazi);
@@ -346,16 +552,13 @@ async function drawTarot() {
     const question = document.getElementById('tarot-question').value || '我的人生指引';
     const spread = document.getElementById('tarot-spread').value;
 
-    // 显示洗牌动画
     document.getElementById('tarot-shuffling').classList.remove('hidden');
     document.getElementById('tarot-result').classList.add('hidden');
 
-    // 洗牌延迟
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     document.getElementById('tarot-shuffling').classList.add('hidden');
 
-    // 随机选择牌
     selectedCards = [];
     const indices = new Set();
     const cardCount = tarotPositions[spread].length;
@@ -366,10 +569,9 @@ async function drawTarot() {
 
     const cardsData = Array.from(indices).map(index => ({
         ...tarotCards[index],
-        reversed: Math.random() > 0.7 // 30% 概率逆位
+        reversed: Math.random() > 0.7
     }));
 
-    // 显示结果
     document.getElementById('tarot-result').classList.remove('hidden');
     document.getElementById('tarot-question-display').textContent = `问题：${question}`;
     document.getElementById('tarot-spread-info').textContent =
@@ -392,14 +594,12 @@ async function drawTarot() {
             </div>
         `;
 
-        // 点击翻牌
         let revealed = false;
         cardEl.addEventListener('click', () => {
             if (revealed) return;
             revealed = true;
             cardEl.classList.add('revealed');
 
-            // 检查是否全部翻开
             const allRevealed = cardsContainer.querySelectorAll('.revealed').length === cardsData.length;
             if (allRevealed) {
                 showInterpretation(spread, cardsData);
@@ -410,6 +610,15 @@ async function drawTarot() {
     });
 
     isShuffling = false;
+
+    // 保存临时数据
+    currentType = 'tarot';
+    currentResult = {
+        question: question,
+        spread: spread,
+        spreadInfo: document.getElementById('tarot-spread-info').textContent,
+        cards: cardsData
+    };
 }
 
 function showInterpretation(spread, cardsData) {
@@ -429,7 +638,6 @@ function showInterpretation(spread, cardsData) {
         `;
     });
 
-    // 综合解读
     const uprightCount = cardsData.filter(c => !c.reversed).length;
     let summary = '';
 
@@ -449,11 +657,63 @@ function showInterpretation(spread, cardsData) {
     `;
 
     container.innerHTML = html;
+
+    // 更新当前结果
+    currentResult.interpretation = html;
 }
 
 document.getElementById('draw-tarot-btn').addEventListener('click', drawTarot);
 
-// ==================== 页面加载欢迎语 ====================
+// ==================== 保存历史记录按钮 ====================
+document.querySelectorAll('.save-history-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const type = this.dataset.type;
+        if (!currentResult || currentType !== type) {
+            alert('请先生成占卜结果');
+            return;
+        }
+
+        let title = '';
+        if (type === 'horoscope') {
+            title = `${currentResult.signName} - ${currentResult.date}`;
+        } else if (type === 'bazi') {
+            title = `${currentResult.name} - ${currentResult.info}`;
+        } else if (type === 'tarot') {
+            title = currentResult.question;
+        }
+
+        HistoryManager.save(type, title, currentResult);
+        alert('已保存到历史记录！');
+    });
+});
+
+// ==================== 事件绑定 ====================
+document.getElementById('theme-toggle').addEventListener('click', () => ThemeManager.togglePanel());
+document.getElementById('history-toggle').addEventListener('click', () => HistoryManager.togglePanel());
+document.getElementById('close-theme').addEventListener('click', () => {
+    document.getElementById('theme-panel').classList.add('hidden');
+});
+document.getElementById('close-history').addEventListener('click', () => {
+    document.getElementById('history-panel').classList.add('hidden');
+});
+
+document.querySelectorAll('.theme-option').forEach(option => {
+    option.addEventListener('click', () => {
+        ThemeManager.setTheme(option.dataset.theme);
+    });
+});
+
+document.getElementById('clear-history').addEventListener('click', () => {
+    if (confirm('确定要清空所有历史记录吗？')) {
+        HistoryManager.clear();
+    }
+});
+
+// ==================== 初始化 ====================
+ThemeManager.init();
+HistoryManager.init();
+
+// 页面加载欢迎语
 window.addEventListener('load', () => {
     console.log('✨ 命运之境已加载完毕 ✨');
     console.log('本结果仅供娱乐参考，命运掌握在自己手中');

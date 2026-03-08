@@ -13,6 +13,16 @@
         <div class="particles"></div>
     </div>
 
+    <!-- 顶部工具栏 -->
+    <div class="top-bar">
+        <button id="theme-toggle" class="theme-btn" title="切换主题">
+            <span class="theme-icon">🎨</span>
+        </button>
+        <button id="history-toggle" class="history-btn" title="历史记录">
+            <span class="history-icon">📜</span>
+        </button>
+    </div>
+
     <header>
         <h1 class="title">
             <span class="mystic-symbol">✦</span>
@@ -118,6 +128,7 @@
                         <h4>📜 今日指引</h4>
                         <p id="fortune-guidance"></p>
                     </div>
+                    <button class="save-history-btn" data-type="horoscope">保存到历史记录</button>
                 </div>
             </div>
         </section>
@@ -197,6 +208,7 @@
                     <div class="bazi-header">
                         <h3 id="bazi-name"></h3>
                         <p id="bazi-info"></p>
+                        <p id="bazi-lunar" class="bazi-lunar"></p>
                     </div>
                     <div class="bazi-grid">
                         <div class="bazi-pillar">
@@ -240,6 +252,7 @@
                         <h4>💕 感情运势</h4>
                         <p id="bazi-love"></p>
                     </div>
+                    <button class="save-history-btn" data-type="bazi">保存到历史记录</button>
                 </div>
             </div>
         </section>
@@ -274,6 +287,7 @@
                 </div>
                 <div id="tarot-cards" class="tarot-cards"></div>
                 <div id="tarot-interpretation" class="tarot-interpretation"></div>
+                <button class="save-history-btn" data-type="tarot">保存到历史记录</button>
             </div>
 
             <div id="tarot-shuffling" class="shuffling hidden">
@@ -287,11 +301,50 @@
         </section>
     </main>
 
+    <!-- 历史记录侧边栏 -->
+    <div id="history-panel" class="history-panel hidden">
+        <div class="history-header">
+            <h3>📜 占卜历史</h3>
+            <button id="close-history" class="close-btn">×</button>
+        </div>
+        <div id="history-list" class="history-list">
+            <p class="empty-history">暂无历史记录</p>
+        </div>
+        <button id="clear-history" class="clear-history-btn">清空历史记录</button>
+    </div>
+
+    <!-- 主题选择面板 -->
+    <div id="theme-panel" class="theme-panel hidden">
+        <div class="theme-header">
+            <h3>🎨 选择主题</h3>
+            <button id="close-theme" class="close-btn">×</button>
+        </div>
+        <div class="theme-options">
+            <button class="theme-option active" data-theme="dark">
+                <span class="theme-preview dark-preview"></span>
+                <span>暗黑魔法</span>
+            </button>
+            <button class="theme-option" data-theme="china">
+                <span class="theme-preview china-preview"></span>
+                <span>中国风</span>
+            </button>
+            <button class="theme-option" data-theme="light">
+                <span class="theme-preview light-preview"></span>
+                <span>简约白</span>
+            </button>
+            <button class="theme-option" data-theme="purple">
+                <span class="theme-preview purple-preview"></span>
+                <span>神秘紫</span>
+            </button>
+        </div>
+    </div>
+
     <footer>
         <p>✨ 本结果仅供娱乐参考，命运掌握在自己手中 ✨</p>
         <p class="copyright">© 2026 命运之境</p>
     </footer>
 
+    <script src="lunar.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
